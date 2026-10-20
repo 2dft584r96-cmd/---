@@ -1,0 +1,44 @@
+name: apex-radio
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3000"
+      COOKIE_SECURE: "1"
+      DB_PATH: /app/data/apex.sqlite
+      SETUP_TOKEN: ${SETUP_TOKEN:?Set SETUP_TOKEN in .env}
+    volumes:
+      - messages:/app/data
+    networks:
+      - internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy_config:/config
+    networks:
+      - internal
+    depends_on:
+      app:
+        condition: service_healthy
+networks:
+  internal:
+volumes:
+  messages:
+  certificates:
+  caddy_config:
